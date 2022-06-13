@@ -1,0 +1,24 @@
+[package]
+name = "isap-aead"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aead = { version = "0.4", default-features = false }
+ascon-core = "0.1.1"
+subtle = "2"
+zeroize = { version = "1.5", optional = true, default-features = false, features = [
+    "derive",
+] }
+
+[dev-dependencies]
+spectral = "0.6"
+hex = "0.4"
+
+[features]
+default = ["zeroize", "alloc"]
+std = ["aead/std", "alloc"]
+alloc = ["aead/alloc"]
+heapless = ["aead/heapless"]
