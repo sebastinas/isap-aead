@@ -25,6 +25,8 @@ zeroize = { version = "1.5", optional = true, default-features = false, features
 [dev-dependencies]
 spectral = "0.6"
 hex = "0.4"
+criterion = "0.3"
+rand = { version = "0.8", default-features = false, features = ["std_rng"] }
 
 [features]
 default = ["zeroize", "alloc", "ascon", "keccak"]
@@ -32,3 +34,8 @@ ascon = ["ascon-core"]
 std = ["aead/std", "alloc"]
 alloc = ["aead/alloc"]
 heapless = ["aead/heapless"]
+
+[[bench]]
+name = "benches"
+harness = false
+required-features = ["default", "std"]
