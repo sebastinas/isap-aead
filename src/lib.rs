@@ -1,7 +1,67 @@
 // Copyright 2022 Sebastian Ramacher
 // SPDX-License-Identifier: MIT
 
-//! # ISAP implementation
+//! # ISAP authenticated encryption with Keccak and Ascon permutations
+//!
+//! This crate provides an implementation of the authenticated encryption scheme
+//! [ISAP](https://isap.iaik.tugraz.at). As specified in ISAP version 2,
+//! implementations are provided for the Ascon and Keccak based instances.
+//!
+//! ## Usage
+//!
+//! Simple usage (allocating, no associated data):
+//!
+//! ```
+//! # #[cfg(feature="ascon")] {
+//! use isap_aead::{IsapAscon128, Key, Nonce}; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
+//! use isap_aead::aead::{Aead, NewAead};
+//!
+//! let key = Key::<IsapAscon128>::from_slice(b"very secret key.");
+//! let cipher = IsapAscon128::new(key);
+//!
+//! let nonce = Nonce::<IsapAscon128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//!
+//! let ciphertext = cipher.encrypt(nonce, b"plaintext message".as_ref())
+//!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
+//!
+//! let plaintext = cipher.decrypt(nonce, ciphertext.as_ref())
+//!     .expect("decryption failure!"); // NOTE: handle this error to avoid panics!
+//!
+//! assert_eq!(&plaintext, b"plaintext message");
+//! # }
+//! ```
+//!
+//! ## In-place Usage (eliminates `alloc` requirement)
+//!
+//! Similar to other crates implementing [`aead`] interfaces, this crate also offers an optional
+//! `alloc` feature which can be disabled in e.g. microcontroller environments that don't have a
+//! heap. See [`aead::AeadInPlace`] for more details.
+//!
+//! ```
+//! # #[cfg(all(feature = "heapless", feature="ascon"))] {
+//! use isap_aead::{IsapAscon128, Key, Nonce}; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
+//! use ascon_aead::aead::{AeadInPlace, NewAead};
+//! use ascon_aead::aead::heapless::Vec;
+//!
+//! let key = Key::<IsapAscon128>::from_slice(b"very secret key.");
+//! let cipher = IsapAscon128::new(key);
+//!
+//! let nonce = Nonce::<IsapAscon128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//!
+//! let mut buffer: Vec<u8, 128> = Vec::new(); // Buffer needs 16-bytes overhead for authentication tag
+//! buffer.extend_from_slice(b"plaintext message");
+//!
+//! // Encrypt `buffer` in-place, replacing the plaintext contents with ciphertext
+//! cipher.encrypt_in_place(nonce, b"", &mut buffer).expect("encryption failure!");
+//!
+//! // `buffer` now contains the message ciphertext
+//! assert_ne!(&buffer, b"plaintext message");
+//!
+//! // Decrypt `buffer` in-place, replacing its ciphertext context with the original plaintext
+//! cipher.decrypt_in_place(nonce, b"", &mut buffer).expect("decryption failure!");
+//! assert_eq!(&buffer, b"plaintext message");
+//! # }
+//! ```
 
 #![no_std]
 #![warn(missing_docs)]
