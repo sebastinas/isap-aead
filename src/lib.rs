@@ -1,210 +1,235 @@
-use aead::consts::{U0, U16};
-pub use aead::{self, AeadCore, AeadInPlace, Error, Key, NewAead, Nonce, Tag};
-use ascon_core::{pad, State};
+// Copyright 2022 Sebastian Ramacher
+// SPDX-License-Identifier: MIT
+
+//! # ISAP implementation
+
+#![no_std]
+#![warn(missing_docs)]
+
+use core::ops::Sub;
+
+pub use aead::{self, AeadCore, AeadInPlace, Error, Key, NewAead, Nonce, Result, Tag};
+use aead::{
+    consts::{U0, U16},
+    generic_array::typenum::Unsigned,
+};
 use subtle::ConstantTimeEq;
 
-const ISAP_K: usize = 128;
-const ISAP_RH: usize = 64;
-const ISAP_RB: usize = 1;
-const ISAP_SK: usize = 12;
-const ISAP_SB: usize = 12;
-const ISAP_SE: usize = 12;
-const ISAP_SH: usize = 12;
-const ISAP_IV_A: u64 = u64::from_be_bytes([
-    0x01,
-    ISAP_K as u8,
-    ISAP_RH as u8,
-    ISAP_RB as u8,
-    ISAP_SH as u8,
-    ISAP_SB as u8,
-    ISAP_SE as u8,
-    ISAP_SK as u8,
-]);
-const ISAP_IV_KA: u64 = u64::from_be_bytes([
-    0x02,
-    ISAP_K as u8,
-    ISAP_RH as u8,
-    ISAP_RB as u8,
-    ISAP_SH as u8,
-    ISAP_SB as u8,
-    ISAP_SE as u8,
-    ISAP_SK as u8,
-]);
-const ISAP_IV_KE: u64 = u64::from_be_bytes([
-    0x03,
-    ISAP_K as u8,
-    ISAP_RH as u8,
-    ISAP_RB as u8,
-    ISAP_SH as u8,
-    ISAP_SB as u8,
-    ISAP_SE as u8,
-    ISAP_SK as u8,
-]);
+mod ascon_impl;
+mod keccak_impl;
 
-fn isap_rk(k0: u64, k1: u64, iv: u64, mut input: &[u8]) -> State {
-    let mut state = State::new(k0, k1, iv, 0, 0);
-    state.permute_n(ISAP_SK);
+pub use ascon_impl::{IsapAscon128, IsapAscon128A};
+pub use keccak_impl::{IsapKeccak128, IsapKeccak128A};
 
-    while input.len() > 1 {
-        let byte = input[0];
+/// Helper trait to subtract `U16` from an `Unsigned`
+trait U16Subtractable: Sub<U16> {
+    type Output: Unsigned;
+}
+
+impl<T> U16Subtractable for T
+where
+    T: Unsigned + Sub<U16>,
+    <T as Sub<U16>>::Output: Unsigned,
+{
+    type Output = <T as Sub<U16>>::Output;
+}
+
+/// A permutation state that can absorb an arbitrary number of bytes.
+///
+/// The state needs to keep track one the number of processed bytes to perform a permutation after absorbing `RATE` bytes.
+trait AbsorbingState: Default + ByteManipulation {
+    const RATE: usize;
+    type StateSize: Unsigned + U16Subtractable;
+
+    /// Absorb one byte and permute if `RATE` has been reached.
+    fn absorb_byte<R: Unsigned>(&mut self, byte: u8);
+    /// Absorb bytes and permute whenever `RATE` bytes have been processed.
+    fn absorb_bytes<R: Unsigned>(&mut self, bytes: &[u8]);
+    /// Absorb data, add padding and permute
+    fn absorb_bytes_pad_permute<R: Unsigned>(&mut self, data: &[u8]) {
+        self.absorb_bytes::<R>(data);
+        self.absorb_byte::<R>(0x80);
+        self.permute_n_if::<R>();
+    }
+    /// Perform a permutation.
+    fn permute_n<R: Unsigned>(&mut self);
+    /// Perform a permutation if a non-zero amount of bytes have been processed after the last permutation.
+    fn permute_n_if<R: Unsigned>(&mut self);
+    /// Seperate domains.
+    fn seperate_domains(&mut self);
+}
+
+trait ByteManipulation {
+    fn extract_bytes<const LEN: usize>(&self) -> [u8; LEN];
+    fn overwrite_bytes<const LEN: usize, O: Unsigned>(&mut self, bytes: &[u8; LEN]);
+}
+
+/// Helper trait for all ISAP parameters and algorithms.
+///
+/// Implementors only need provide implementations to apply the key stream to blocks/bytes of the message.
+trait Isap {
+    /// The state.
+    type State: AbsorbingState;
+    type KeySizeBits: Unsigned; //  = U128;
+    /// ABsorbation rate for encryption and MAC, i.e., `r_H`.
+    type RateBits: Unsigned;
+    type RateBytes: Unsigned;
+    /// Absorbation rate for session key, i.e., `r_B`
+    type RateSessionKeyBits: Unsigned; // = 1;
+    /// Rounds of the permutation for long term key absorbation, i.e., `s_K`.
+    type RoundsKey: Unsigned;
+    //// Rounds of the permutation for bit absorbation, i.e., `s_B`.
+    type RoundsBit: Unsigned;
+    /// Rounds of the permutation for encrytion, i.e., `s_E`.
+    type RoundsEncryption: Unsigned;
+    /// Rounds of the permutation for MAC, i.e., `s_H`.
+    type RoundsMAC: Unsigned;
+
+    /// IV for MAC
+    const ISAP_IV_A: [u8; 8] = [
+        0x01,
+        Self::KeySizeBits::U8,
+        Self::RateBits::U8,
+        Self::RateSessionKeyBits::U8,
+        Self::RoundsMAC::U8,
+        Self::RoundsBit::U8,
+        Self::RoundsEncryption::U8,
+        Self::RoundsKey::U8,
+    ];
+    /// IV for MAC key derivation
+    const ISAP_IV_KA: [u8; 8] = [
+        0x02,
+        Self::KeySizeBits::U8,
+        Self::RateBits::U8,
+        Self::RateSessionKeyBits::U8,
+        Self::RoundsMAC::U8,
+        Self::RoundsBit::U8,
+        Self::RoundsEncryption::U8,
+        Self::RoundsKey::U8,
+    ];
+    /// IV for encryption key derivation
+    const ISAP_IV_KE: [u8; 8] = [
+        0x03,
+        Self::KeySizeBits::U8,
+        Self::RateBits::U8,
+        Self::RateSessionKeyBits::U8,
+        Self::RoundsMAC::U8,
+        Self::RoundsBit::U8,
+        Self::RoundsEncryption::U8,
+        Self::RoundsKey::U8,
+    ];
+
+    /// Process one full block of the message/ciphertext and encrypt/decrypt.
+    fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]);
+    /// Process the remaining bytes of the message/ciphertext and encrypt/decrypt.
+    fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]);
+
+    /// Perform encryption
+    fn isap_enc(key: &[u8; 16], nonce: &[u8; 16], mut buffer: &mut [u8]) {
+        let mut state =
+            isap_rk::<Self::State, Self::RoundsKey, Self::RoundsBit>(key, &Self::ISAP_IV_KE, nonce);
+        state.overwrite_bytes::<16, <<Self::State as AbsorbingState>::StateSize as U16Subtractable>::Output>(nonce);
+
+        while buffer.len() >= Self::RateBytes::USIZE {
+            state.permute_n::<Self::RoundsEncryption>();
+            // process full block
+            Self::isap_enc_process_block(&state, buffer);
+            buffer = &mut buffer[Self::RateBytes::USIZE..];
+        }
+
+        if !buffer.is_empty() {
+            state.permute_n::<Self::RoundsEncryption>();
+            // process remaining bytes
+            Self::isap_enc_process_bytes(state, buffer);
+        }
+    }
+
+    /// Compute authentication tag
+    fn isap_mac(
+        k: &[u8; 16],
+        nonce: &[u8; 16],
+        associated_data: &[u8],
+        ciphertext: &[u8],
+    ) -> [u8; 16] {
+        let mut state = Self::State::default();
+        state.overwrite_bytes::<16, U0>(nonce);
+        state.overwrite_bytes::<8, U16>(&Self::ISAP_IV_A);
+        state.permute_n::<Self::RoundsMAC>();
+
+        // absorb associated data
+        state.absorb_bytes_pad_permute::<Self::RoundsMAC>(associated_data);
+        // domain seperation
+        state.seperate_domains();
+        // absorb ciphertext
+        state.absorb_bytes_pad_permute::<Self::RoundsMAC>(ciphertext);
+
+        // derive Ka*
+        let y: [u8; 16] = state.extract_bytes();
+        let state2 =
+            isap_rk::<Self::State, Self::RoundsKey, Self::RoundsBit>(k, &Self::ISAP_IV_KA, &y);
+
+        // squeeze tag
+        state.overwrite_bytes::<16, U0>(&state2.extract_bytes::<16>());
+        state.permute_n::<Self::RoundsMAC>();
+        state.extract_bytes::<16>()
+    }
+
+    /// Full implementation of the ISAP encryption algorithm.
+    fn encrypt_impl(
+        key: &[u8; 16],
+        nonce: &[u8; 16],
+        associated_data: &[u8],
+        buffer: &mut [u8],
+    ) -> Result<[u8; 16]> {
+        if !buffer.is_empty() {
+            Self::isap_enc(key, nonce, buffer);
+        }
+        Ok(Self::isap_mac(key, nonce, associated_data, buffer))
+    }
+
+    /// Full implementation of the ISAP decryption algorithm.
+    fn decrypt_impl(
+        key: &[u8; 16],
+        nonce: &[u8; 16],
+        associated_data: &[u8],
+        buffer: &mut [u8],
+        tag: &[u8],
+    ) -> Result<()> {
+        if bool::from(Self::isap_mac(key, nonce, associated_data, buffer).ct_eq(tag)) {
+            if !buffer.is_empty() {
+                Self::isap_enc(key, nonce, buffer);
+            }
+            Ok(())
+        } else {
+            Err(Error)
+        }
+    }
+}
+
+/// Derive session key `K_A^*`and `K_E^*, respectively, from long term key `K`.
+fn isap_rk<State: AbsorbingState, RoundsKey: Unsigned, RoundsBit: Unsigned>(
+    k: &[u8; 16],
+    iv: &[u8; 8],
+    input: &[u8],
+) -> State {
+    let mut state = State::default();
+    state.overwrite_bytes::<16, U0>(k);
+    state.overwrite_bytes::<8, U16>(iv);
+    state.permute_n::<RoundsKey>();
+
+    for byte in &input[..input.len() - 1] {
         for bit_index in 0..8 {
-            // FIXME: not BE safe
-            state[0] ^= (((byte >> (7 - bit_index)) & 0x1) as u64) << 63;
-            state.permute_n(ISAP_SB);
+            state.absorb_byte::<RoundsBit>((byte << bit_index) & 0x80);
+            state.permute_n::<RoundsBit>();
         }
-        input = &input[1..];
     }
-    let byte = input[0];
+    let byte = input[input.len() - 1];
     for bit_index in 0..7 {
-        // FIXME: not BE safe
-        state[0] ^= (((byte >> (7 - bit_index)) & 0x1) as u64) << 63;
-        state.permute_n(ISAP_SB);
+        state.absorb_byte::<RoundsBit>((byte << bit_index) & 0x80);
+        state.permute_n::<RoundsBit>();
     }
-    // FIXME: not BE safe
-    state[0] ^= (((byte) & 0x1) as u64) << 63;
-    state.permute_n(ISAP_SK);
+    state.absorb_byte::<RoundsKey>((byte << 7) & 0x80);
+    state.permute_n::<RoundsKey>();
 
     state
-}
-
-fn isap_enc(mut state: State, nonce: [u64; 2], mut buffer: &mut [u8]) {
-    state[3] = nonce[0];
-    state[4] = nonce[1];
-
-    while buffer.len() >= 8 {
-        state.permute_n(ISAP_SE);
-        // process full block
-        let t = state[0] ^ u64::from_be_bytes(buffer[..8].try_into().unwrap());
-        buffer[..8].copy_from_slice(&u64::to_be_bytes(t));
-
-        buffer = &mut buffer[8..];
-    }
-
-    if !buffer.is_empty() {
-        state.permute_n(ISAP_SE);
-        let mut tmp = [0u8; 8];
-        tmp[0..buffer.len()].copy_from_slice(buffer);
-        buffer.copy_from_slice(
-            &u64::to_be_bytes(state[0] ^ u64::from_be_bytes(tmp))[0..buffer.len()],
-        );
-    }
-}
-
-fn absorb(mut state: State, mut data: &[u8]) -> State {
-    while data.len() >= 8 {
-        // process full block
-        state[0] ^= u64::from_be_bytes(data[..8].try_into().unwrap());
-        state.permute_n(ISAP_SH);
-        data = &data[8..]
-    }
-    state[0] ^= pad(data.len());
-    if !data.is_empty() {
-        let mut tmp = [0u8; 8];
-        tmp[0..data.len()].copy_from_slice(data);
-        state[0] ^= u64::from_be_bytes(tmp);
-    }
-    state.permute_n(ISAP_SH);
-    state
-}
-
-fn isap_mac(
-    k0: u64,
-    k1: u64,
-    nonce: [u64; 2],
-    associated_data: &[u8],
-    ciphertext: &[u8],
-) -> [u8; 16] {
-    let mut state = State::new(nonce[0], nonce[1], ISAP_IV_A, 0, 0);
-    state.permute_n(ISAP_SH);
-
-    // absorb associated data
-    state = absorb(state, associated_data);
-    // domain seperation
-    state[4] ^= 0x01;
-    // absorb ciphertext
-    state = absorb(state, ciphertext);
-
-    // derive Ka*
-    let y = state.as_bytes();
-
-    let state2 = isap_rk(k0, k1, ISAP_IV_KA, &y[..16]);
-    state[0] = state2[0];
-    state[1] = state2[1];
-    state.permute_n(ISAP_SH);
-    state.as_bytes()[..16].try_into().unwrap()
-}
-
-pub struct Isap {
-    k: [u64; 2],
-}
-
-impl AeadCore for Isap {
-    type NonceSize = U16;
-    type TagSize = U16;
-    type CiphertextOverhead = U0;
-}
-
-impl NewAead for Isap {
-    type KeySize = U16;
-
-    fn new(key: &Key<Self>) -> Self {
-        Self {
-            k: [
-                u64::from_be_bytes(key[..8].try_into().unwrap()),
-                u64::from_be_bytes(key[8..16].try_into().unwrap()),
-            ],
-        }
-    }
-}
-
-impl AeadInPlace for Isap {
-    fn encrypt_in_place_detached(
-        &self,
-        nonce: &Nonce<Self>,
-        associated_data: &[u8],
-        buffer: &mut [u8],
-    ) -> aead::Result<Tag<Self>> {
-        let nonce64 = [
-            u64::from_be_bytes(nonce[..8].try_into().unwrap()),
-            u64::from_be_bytes(nonce[8..16].try_into().unwrap()),
-        ];
-
-        let state = isap_rk(self.k[0], self.k[1], ISAP_IV_KE, nonce);
-        isap_enc(state, nonce64, buffer);
-
-        Ok(isap_mac(self.k[0], self.k[1], nonce64, associated_data, buffer).into())
-    }
-
-    fn decrypt_in_place_detached(
-        &self,
-        nonce: &Nonce<Self>,
-        associated_data: &[u8],
-        buffer: &mut [u8],
-        tag: &Tag<Self>,
-    ) -> aead::Result<()> {
-        let nonce64 = [
-            u64::from_be_bytes(nonce[..8].try_into().unwrap()),
-            u64::from_be_bytes(nonce[8..16].try_into().unwrap()),
-        ];
-
-        if !bool::from(isap_mac(self.k[0], self.k[1], nonce64, associated_data, buffer).ct_eq(tag))
-        {
-            return Err(Error);
-        }
-
-        let state = isap_rk(self.k[0], self.k[1], ISAP_IV_KE, nonce);
-        isap_enc(state, nonce64, buffer);
-
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::ISAP_IV_A;
-
-    #[test]
-    fn constants() {
-        assert_eq!(u64::to_be_bytes(ISAP_IV_A), [1, 128, 64, 1, 12, 12, 12, 12]);
-    }
 }

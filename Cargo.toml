@@ -1,16 +1,25 @@
 [package]
 name = "isap-aead"
+description = "Pure Rust implementation of ISAP v2 with Ascon and Keccak"
 version = "0.1.0"
+authors = ["Sebastian Ramacher <sebastian.ramacher@ait.ac.at>"]
+license = "MIT"
+repository = "https://github.com/sebastinas/isap-aead"
+homepage = "https://github.com/sebastinas/isap-aead"
+readme = "README.md"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+rust-version = "1.56"
+keywords = ["AEAD", "ISAP", "encryption"]
+categories = ["cryptography", "no-std"]
+exclude = [".github/", ".gitignore"]
 
 [dependencies]
 aead = { version = "0.4", default-features = false }
 ascon-core = "0.1.1"
+keccak = "0.1"
 subtle = "2"
 zeroize = { version = "1.5", optional = true, default-features = false, features = [
-    "derive",
+  "derive",
 ] }
 
 [dev-dependencies]

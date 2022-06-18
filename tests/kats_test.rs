@@ -3,7 +3,7 @@
 
 use isap_aead::{
     aead::{Aead, Payload},
-    AeadInPlace, Isap, Key, NewAead, Nonce,
+    AeadInPlace, IsapAscon128, IsapAscon128A, IsapKeccak128, IsapKeccak128A, Key, NewAead, Nonce,
 };
 use spectral::prelude::{asserting, OrderedAssertions, ResultAssertions};
 use std::collections::HashMap;
@@ -99,6 +99,30 @@ fn parse_tvs(tvs: &str) -> Vec<TestVector> {
 fn test_vectors_ascon128() {
     let tvs = parse_tvs(include_str!("data/isapa128.txt"));
     for tv in tvs {
-        run_tv::<Isap>(tv);
+        run_tv::<IsapAscon128>(tv);
+    }
+}
+
+#[test]
+fn test_vectors_ascon128a() {
+    let tvs = parse_tvs(include_str!("data/isapa128a.txt"));
+    for tv in tvs {
+        run_tv::<IsapAscon128A>(tv);
+    }
+}
+
+#[test]
+fn test_vectors_keccak128() {
+    let tvs = parse_tvs(include_str!("data/isapk128.txt"));
+    for tv in tvs {
+        run_tv::<IsapKeccak128>(tv);
+    }
+}
+
+#[test]
+fn test_vectors_keccak128a() {
+    let tvs = parse_tvs(include_str!("data/isapk128a.txt"));
+    for tv in tvs {
+        run_tv::<IsapKeccak128A>(tv);
     }
 }
