@@ -40,8 +40,8 @@
 //! ```
 //! # #[cfg(all(feature = "heapless", feature="ascon"))] {
 //! use isap_aead::{IsapAscon128, Key, Nonce}; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
-//! use ascon_aead::aead::{AeadInPlace, NewAead};
-//! use ascon_aead::aead::heapless::Vec;
+//! use isap_aead::aead::{AeadInPlace, NewAead};
+//! use isap_aead::aead::heapless::Vec;
 //!
 //! let key = Key::<IsapAscon128>::from_slice(b"very secret key.");
 //! let cipher = IsapAscon128::new(key);
