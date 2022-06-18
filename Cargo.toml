@@ -15,8 +15,8 @@ exclude = [".github/", ".gitignore"]
 
 [dependencies]
 aead = { version = "0.4", default-features = false }
-ascon-core = "0.1.1"
-keccak = "0.1"
+ascon-core = { version = "0.1.1", optional = true }
+keccak = { version = "0.1", optional = true }
 subtle = "2"
 zeroize = { version = "1.5", optional = true, default-features = false, features = [
   "derive",
@@ -27,7 +27,8 @@ spectral = "0.6"
 hex = "0.4"
 
 [features]
-default = ["zeroize", "alloc"]
+default = ["zeroize", "alloc", "ascon", "keccak"]
+ascon = ["ascon-core"]
 std = ["aead/std", "alloc"]
 alloc = ["aead/alloc"]
 heapless = ["aead/heapless"]

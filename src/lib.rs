@@ -15,10 +15,16 @@ use aead::{
 };
 use subtle::ConstantTimeEq;
 
+#[cfg(feature = "ascon")]
 mod ascon_impl;
+
+#[cfg(feature = "keccak")]
 mod keccak_impl;
 
+#[cfg(feature = "ascon")]
 pub use ascon_impl::{IsapAscon128, IsapAscon128A};
+
+#[cfg(feature = "keccak")]
 pub use keccak_impl::{IsapKeccak128, IsapKeccak128A};
 
 /// Helper trait to subtract `U16` from an `Unsigned`

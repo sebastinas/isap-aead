@@ -95,6 +95,7 @@ fn parse_tvs(tvs: &str) -> Vec<TestVector> {
     ret
 }
 
+#[cfg(feature = "ascon")]
 #[test]
 fn test_vectors_ascon128() {
     let tvs = parse_tvs(include_str!("data/isapa128.txt"));
@@ -103,6 +104,7 @@ fn test_vectors_ascon128() {
     }
 }
 
+#[cfg(feature = "ascon")]
 #[test]
 fn test_vectors_ascon128a() {
     let tvs = parse_tvs(include_str!("data/isapa128a.txt"));
@@ -111,6 +113,7 @@ fn test_vectors_ascon128a() {
     }
 }
 
+#[cfg(feature = "keccak")]
 #[test]
 fn test_vectors_keccak128() {
     let tvs = parse_tvs(include_str!("data/isapk128.txt"));
@@ -119,6 +122,7 @@ fn test_vectors_keccak128() {
     }
 }
 
+#[cfg(feature = "keccak")]
 #[test]
 fn test_vectors_keccak128a() {
     let tvs = parse_tvs(include_str!("data/isapk128a.txt"));
