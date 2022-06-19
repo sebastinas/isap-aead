@@ -42,7 +42,7 @@ fn bench_for_size_inplace<A: NewAead + AeadInPlace>(
 }
 
 fn criterion_benchmark<A: NewAead + Aead>(c: &mut Criterion, name: &str) {
-    let mut rng = StdRng::seed_from_u64(0x0123456789abcdef);
+    let mut rng = StdRng::from_entropy();
     let mut group = c.benchmark_group(name);
     for size in [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB].iter() {
         group.throughput(Throughput::Bytes(*size as u64));
@@ -54,7 +54,7 @@ fn criterion_benchmark<A: NewAead + Aead>(c: &mut Criterion, name: &str) {
 }
 
 fn criterion_benchmark_inplace<A: NewAead + AeadInPlace>(c: &mut Criterion, name: &str) {
-    let mut rng = StdRng::seed_from_u64(0x0123456789abcdef);
+    let mut rng = StdRng::from_entropy();
     let mut group = c.benchmark_group(name);
     for size in [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB].iter() {
         group.throughput(Throughput::Bytes(*size as u64));
