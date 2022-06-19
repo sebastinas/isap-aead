@@ -8,6 +8,7 @@ use isap_aead::aead::{generic_array::typenum::Unsigned, Aead, AeadInPlace, NewAe
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
 const KB: usize = 1024;
+const SIZES: [usize; 7] = [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB];
 
 fn bench_for_size<A: NewAead + Aead>(b: &mut Bencher, rng: &mut dyn RngCore, size: usize) {
     let mut key = vec![0u8; A::KeySize::USIZE];
@@ -44,7 +45,7 @@ fn bench_for_size_inplace<A: NewAead + AeadInPlace>(
 fn criterion_benchmark<A: NewAead + Aead>(c: &mut Criterion, name: &str) {
     let mut rng = StdRng::from_entropy();
     let mut group = c.benchmark_group(name);
-    for size in [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB].iter() {
+    for size in SIZES.iter() {
         group.throughput(Throughput::Bytes(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
             bench_for_size::<A>(b, &mut rng, size)
@@ -56,7 +57,7 @@ fn criterion_benchmark<A: NewAead + Aead>(c: &mut Criterion, name: &str) {
 fn criterion_benchmark_inplace<A: NewAead + AeadInPlace>(c: &mut Criterion, name: &str) {
     let mut rng = StdRng::from_entropy();
     let mut group = c.benchmark_group(name);
-    for size in [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB].iter() {
+    for size in SIZES.iter() {
         group.throughput(Throughput::Bytes(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
             bench_for_size_inplace::<A>(b, &mut rng, size)
