@@ -187,9 +187,16 @@ impl Isap for IsapKeccak128A {
 
     fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]) {
         let key_stream: [u8; 18] = state.extract_bytes();
-        for (b, k) in buffer.iter_mut().zip(key_stream.into_iter()) {
-            *b ^= k;
-        }
+        // TODO: this is a mess, but faster
+        let t = u64::from_ne_bytes(key_stream[..8].try_into().unwrap())
+            ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
+        buffer[..8].copy_from_slice(&u64::to_ne_bytes(t));
+        let t = u64::from_ne_bytes(key_stream[8..16].try_into().unwrap())
+            ^ u64::from_ne_bytes(buffer[8..16].try_into().unwrap());
+        buffer[8..16].copy_from_slice(&u64::to_ne_bytes(t));
+        let t = u16::from_ne_bytes(key_stream[16..18].try_into().unwrap())
+            ^ u16::from_ne_bytes(buffer[16..18].try_into().unwrap());
+        buffer[16..18].copy_from_slice(&u16::to_ne_bytes(t));
     }
 
     fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]) {
