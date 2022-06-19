@@ -13,18 +13,17 @@
 //!
 //! ```
 //! # #[cfg(feature="ascon")] {
-//! use isap_aead::{IsapAscon128, Key, Nonce}; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
+//! use isap_aead::IsapAscon128; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
 //! use isap_aead::aead::{Aead, NewAead};
 //!
-//! let key = Key::<IsapAscon128>::from_slice(b"very secret key.");
-//! let cipher = IsapAscon128::new(key);
+//! let key = b"very secret key.";
+//! let cipher = IsapAscon128::new(key.into());
+//! let nonce = b"unique nonce 012"; // 128-bits; unique per message
 //!
-//! let nonce = Nonce::<IsapAscon128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
-//!
-//! let ciphertext = cipher.encrypt(nonce, b"plaintext message".as_ref())
+//! let ciphertext = cipher.encrypt(nonce.into(), b"plaintext message".as_ref())
 //!     .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
 //!
-//! let plaintext = cipher.decrypt(nonce, ciphertext.as_ref())
+//! let plaintext = cipher.decrypt(nonce.into(), ciphertext.as_ref())
 //!     .expect("decryption failure!"); // NOTE: handle this error to avoid panics!
 //!
 //! assert_eq!(&plaintext, b"plaintext message");
@@ -39,26 +38,25 @@
 //!
 //! ```
 //! # #[cfg(all(feature = "heapless", feature="ascon"))] {
-//! use isap_aead::{IsapAscon128, Key, Nonce}; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
+//! use isap_aead::IsapAscon128; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
 //! use isap_aead::aead::{AeadInPlace, NewAead};
 //! use isap_aead::aead::heapless::Vec;
 //!
-//! let key = Key::<IsapAscon128>::from_slice(b"very secret key.");
-//! let cipher = IsapAscon128::new(key);
-//!
-//! let nonce = Nonce::<IsapAscon128>::from_slice(b"unique nonce 012"); // 128-bits; unique per message
+//! let key = b"very secret key.";
+//! let cipher = IsapAscon128::new(key.into());
+//! let nonce = b"unique nonce 012"; // 128-bits; unique per message
 //!
 //! let mut buffer: Vec<u8, 128> = Vec::new(); // Buffer needs 16-bytes overhead for authentication tag
 //! buffer.extend_from_slice(b"plaintext message");
 //!
 //! // Encrypt `buffer` in-place, replacing the plaintext contents with ciphertext
-//! cipher.encrypt_in_place(nonce, b"", &mut buffer).expect("encryption failure!");
+//! cipher.encrypt_in_place(nonce.into(), b"", &mut buffer).expect("encryption failure!");
 //!
 //! // `buffer` now contains the message ciphertext
 //! assert_ne!(&buffer, b"plaintext message");
 //!
 //! // Decrypt `buffer` in-place, replacing its ciphertext context with the original plaintext
-//! cipher.decrypt_in_place(nonce, b"", &mut buffer).expect("decryption failure!");
+//! cipher.decrypt_in_place(nonce.into(), b"", &mut buffer).expect("decryption failure!");
 //! assert_eq!(&buffer, b"plaintext message");
 //! # }
 //! ```
@@ -104,7 +102,9 @@ where
 ///
 /// The state needs to keep track one the number of processed bytes to perform a permutation after absorbing `RATE` bytes.
 trait AbsorbingState: Default + ByteManipulation {
+    /// Absorbing rate (in bytes), i.e., how many bytes can be absorbed before a permutation is performed.
     const RATE: usize;
+    /// Size of the internal state.
     type StateSize: Unsigned + U16Subtractable;
 
     /// Absorb one byte and permute if `RATE` has been reached.
@@ -126,7 +126,9 @@ trait AbsorbingState: Default + ByteManipulation {
 }
 
 trait ByteManipulation {
+    /// Extract bytes from the beginning of the state.
     fn extract_bytes<const LEN: usize>(&self) -> [u8; LEN];
+    /// Overwrite any bytes of the state.
     fn overwrite_bytes<const LEN: usize, O: Unsigned>(&mut self, bytes: &[u8; LEN]);
 }
 
@@ -136,11 +138,12 @@ trait ByteManipulation {
 trait Isap {
     /// The state.
     type State: AbsorbingState;
+    /// Size of the keys; always `U128`.
     type KeySizeBits: Unsigned; //  = U128;
-    /// ABsorbation rate for encryption and MAC, i.e., `r_H`.
+    /// Absorbation rate for encryption and MAC, i.e., `r_H`.
     type RateBits: Unsigned;
     type RateBytes: Unsigned;
-    /// Absorbation rate for session key, i.e., `r_B`
+    /// Absorbation rate for session key, i.e., `r_B`; always `U1`.
     type RateSessionKeyBits: Unsigned; // = 1;
     /// Rounds of the permutation for long term key absorbation, i.e., `s_K`.
     type RoundsKey: Unsigned;
