@@ -98,10 +98,10 @@ where
     type Output = <T as Sub<U16>>::Output;
 }
 
-/// A permutation state that can absorb an arbitrary number of bytes.
+/// A permutation state that can (1) absorb an arbitrary number of bytes and (2) extract bytes from the state.
 ///
 /// The state needs to keep track one the number of processed bytes to perform a permutation after absorbing `RATE` bytes.
-trait AbsorbingState: Default + ByteManipulation {
+trait AbsorbingState: Default {
     /// Absorbing rate (in bytes), i.e., how many bytes can be absorbed before a permutation is performed.
     const RATE: usize;
     /// Size of the internal state.
@@ -123,9 +123,7 @@ trait AbsorbingState: Default + ByteManipulation {
     fn permute_n_if<R: Unsigned>(&mut self);
     /// Seperate domains.
     fn seperate_domains(&mut self);
-}
 
-trait ByteManipulation {
     /// Extract bytes from the beginning of the state.
     fn extract_bytes<const LEN: usize>(&self) -> [u8; LEN];
     /// Overwrite any bytes of the state.
@@ -238,9 +236,9 @@ trait Isap {
             isap_rk::<Self::State, Self::RoundsKey, Self::RoundsBit>(k, &Self::ISAP_IV_KA, &y);
 
         // squeeze tag
-        state.overwrite_bytes::<16, U0>(&state2.extract_bytes::<16>());
+        state.overwrite_bytes::<16, U0>(&state2.extract_bytes());
         state.permute_n::<Self::RoundsMAC>();
-        state.extract_bytes::<16>()
+        state.extract_bytes()
     }
 
     /// Full implementation of the ISAP encryption algorithm.

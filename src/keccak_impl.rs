@@ -7,9 +7,7 @@ use aead::{
 };
 use keccak::keccak_p;
 
-use crate::{
-    AbsorbingState, AeadCore, AeadInPlace, ByteManipulation, Isap, Key, NewAead, Nonce, Result, Tag,
-};
+use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, NewAead, Nonce, Result, Tag};
 
 #[derive(Debug, Default)]
 pub(crate) struct KeccakState {
@@ -73,9 +71,7 @@ impl AbsorbingState for KeccakState {
     fn seperate_domains(&mut self) {
         self.state[24] ^= 0x100;
     }
-}
 
-impl ByteManipulation for KeccakState {
     fn extract_bytes<const LEN: usize>(&self) -> [u8; LEN] {
         debug_assert!(LEN % 2 == 0 && LEN <= 50);
 
@@ -117,9 +113,16 @@ impl Isap for IsapKeccak128 {
 
     fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]) {
         let key_stream: [u8; 18] = state.extract_bytes();
-        for (b, k) in buffer.iter_mut().zip(key_stream.into_iter()) {
-            *b ^= k;
-        }
+        // TODO: this is a mess, but faster
+        let t = u64::from_ne_bytes(key_stream[..8].try_into().unwrap())
+            ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
+        buffer[..8].copy_from_slice(&u64::to_ne_bytes(t));
+        let t = u64::from_ne_bytes(key_stream[8..16].try_into().unwrap())
+            ^ u64::from_ne_bytes(buffer[8..16].try_into().unwrap());
+        buffer[8..16].copy_from_slice(&u64::to_ne_bytes(t));
+        let t = u16::from_ne_bytes(key_stream[16..18].try_into().unwrap())
+            ^ u16::from_ne_bytes(buffer[16..18].try_into().unwrap());
+        buffer[16..18].copy_from_slice(&u16::to_ne_bytes(t));
     }
 
     fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]) {
