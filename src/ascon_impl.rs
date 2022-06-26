@@ -33,10 +33,6 @@ impl AbsorbingState for AsconState {
     type StateSize = U40;
 
     fn absorb_byte<R: Unsigned>(&mut self, byte: u8) {
-        // let mut tmp = [0u8; 8];
-        // tmp[self.idx] = byte;
-        // self.state[0] ^= u64::from_be_bytes(tmp);
-        // maybe better  let byte = (byte as u64) << ((7 - self.idx) * 8);
         self.state[0] ^= (byte as u64) << ((7 - self.idx) * 8);
         self.idx += 1;
         if self.idx == Self::RATE {
