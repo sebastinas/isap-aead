@@ -9,18 +9,10 @@ use ascon_core::State;
 
 use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, NewAead, Nonce, Result, Tag};
 
+#[derive(Debug, Default)]
 pub(crate) struct AsconState {
     state: State,
     idx: usize,
-}
-
-impl Default for AsconState {
-    fn default() -> Self {
-        Self {
-            state: ascon_core::State::new(0, 0, 0, 0, 0),
-            idx: 0,
-        }
-    }
 }
 
 impl From<ascon_core::State> for AsconState {
