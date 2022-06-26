@@ -157,8 +157,7 @@ impl AeadInPlace for IsapKeccak128 {
         associated_data: &[u8],
         buffer: &mut [u8],
     ) -> Result<Tag<Self>> {
-        let nonce: [u8; Self::NonceSize::USIZE] = (*nonce).into();
-        Self::encrypt_impl(&self.k, &nonce, associated_data, buffer).map(|tag| tag.into())
+        Self::encrypt_impl(&self.k, nonce, associated_data, buffer).map(|tag| tag.into())
     }
 
     fn decrypt_in_place_detached(
@@ -168,8 +167,7 @@ impl AeadInPlace for IsapKeccak128 {
         buffer: &mut [u8],
         tag: &Tag<Self>,
     ) -> Result<()> {
-        let nonce: [u8; Self::NonceSize::USIZE] = (*nonce).into();
-        Self::decrypt_impl(&self.k, &nonce, associated_data, buffer, tag)
+        Self::decrypt_impl(&self.k, nonce, associated_data, buffer, tag)
     }
 }
 
@@ -236,8 +234,7 @@ impl AeadInPlace for IsapKeccak128A {
         associated_data: &[u8],
         buffer: &mut [u8],
     ) -> Result<Tag<Self>> {
-        let nonce: [u8; Self::NonceSize::USIZE] = (*nonce).into();
-        Self::encrypt_impl(&self.k, &nonce, associated_data, buffer).map(|tag| tag.into())
+        Self::encrypt_impl(&self.k, nonce, associated_data, buffer).map(|tag| tag.into())
     }
 
     fn decrypt_in_place_detached(
@@ -247,7 +244,6 @@ impl AeadInPlace for IsapKeccak128A {
         buffer: &mut [u8],
         tag: &Tag<Self>,
     ) -> aead::Result<()> {
-        let nonce: [u8; Self::NonceSize::USIZE] = (*nonce).into();
-        Self::decrypt_impl(&self.k, &nonce, associated_data, buffer, tag)
+        Self::decrypt_impl(&self.k, nonce, associated_data, buffer, tag)
     }
 }

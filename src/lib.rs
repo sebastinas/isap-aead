@@ -69,7 +69,7 @@ use core::ops::Sub;
 pub use aead::{self, AeadCore, AeadInPlace, Error, Key, KeyInit, Nonce, Result, Tag};
 use aead::{
     consts::{U0, U16},
-    generic_array::typenum::Unsigned,
+    generic_array::{typenum::Unsigned, GenericArray},
 };
 use subtle::ConstantTimeEq;
 
@@ -244,27 +244,27 @@ trait Isap {
     /// Full implementation of the ISAP encryption algorithm.
     fn encrypt_impl(
         key: &[u8; 16],
-        nonce: &[u8; 16],
+        nonce: &GenericArray<u8, U16>,
         associated_data: &[u8],
         buffer: &mut [u8],
     ) -> Result<[u8; 16]> {
         if !buffer.is_empty() {
-            Self::isap_enc(key, nonce, buffer);
+            Self::isap_enc(key, nonce.as_ref(), buffer);
         }
-        Ok(Self::isap_mac(key, nonce, associated_data, buffer))
+        Ok(Self::isap_mac(key, nonce.as_ref(), associated_data, buffer))
     }
 
     /// Full implementation of the ISAP decryption algorithm.
     fn decrypt_impl(
         key: &[u8; 16],
-        nonce: &[u8; 16],
+        nonce: &GenericArray<u8, U16>,
         associated_data: &[u8],
         buffer: &mut [u8],
         tag: &[u8],
     ) -> Result<()> {
-        if bool::from(Self::isap_mac(key, nonce, associated_data, buffer).ct_eq(tag)) {
+        if bool::from(Self::isap_mac(key, nonce.as_ref(), associated_data, buffer).ct_eq(tag)) {
             if !buffer.is_empty() {
-                Self::isap_enc(key, nonce, buffer);
+                Self::isap_enc(key, nonce.as_ref(), buffer);
             }
             Ok(())
         } else {
