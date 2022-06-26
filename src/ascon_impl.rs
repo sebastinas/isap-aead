@@ -131,18 +131,16 @@ impl Isap for IsapAscon128 {
     type State = AsconState;
 
     fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]) {
-        let key_stream = state.extract_bytes();
-        let t =
-            u64::from_ne_bytes(key_stream) ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
+        let t = u64::from_ne_bytes(state.extract_bytes())
+            ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
         buffer[..8].copy_from_slice(&u64::to_ne_bytes(t));
     }
 
     fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]) {
         let mut tmp = [0u8; 8];
         tmp[0..buffer.len()].copy_from_slice(buffer);
-        let key_stream = state.extract_bytes();
         buffer.copy_from_slice(
-            &u64::to_ne_bytes(u64::from_ne_bytes(key_stream) ^ u64::from_ne_bytes(tmp))
+            &u64::to_ne_bytes(u64::from_ne_bytes(state.extract_bytes()) ^ u64::from_ne_bytes(tmp))
                 [0..buffer.len()],
         );
     }
@@ -204,18 +202,16 @@ impl Isap for IsapAscon128A {
     type State = AsconState;
 
     fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]) {
-        let key_stream = state.extract_bytes();
-        let t =
-            u64::from_ne_bytes(key_stream) ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
+        let t = u64::from_ne_bytes(state.extract_bytes())
+            ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
         buffer[..8].copy_from_slice(&u64::to_ne_bytes(t));
     }
 
     fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]) {
         let mut tmp = [0u8; 8];
         tmp[0..buffer.len()].copy_from_slice(buffer);
-        let key_stream = state.extract_bytes();
         buffer.copy_from_slice(
-            &u64::to_ne_bytes(u64::from_ne_bytes(key_stream) ^ u64::from_ne_bytes(tmp))
+            &u64::to_ne_bytes(u64::from_ne_bytes(state.extract_bytes()) ^ u64::from_ne_bytes(tmp))
                 [0..buffer.len()],
         );
     }
