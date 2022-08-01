@@ -4,13 +4,13 @@
 use criterion::{
     black_box, criterion_group, criterion_main, Bencher, BenchmarkId, Criterion, Throughput,
 };
-use isap_aead::aead::{generic_array::typenum::Unsigned, Aead, AeadInPlace, NewAead};
+use isap_aead::aead::{generic_array::typenum::Unsigned, Aead, AeadInPlace, KeyInit};
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
 const KB: usize = 1024;
 const SIZES: [usize; 7] = [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB];
 
-fn bench_for_size<A: NewAead + Aead>(b: &mut Bencher, rng: &mut dyn RngCore, size: usize) {
+fn bench_for_size<A: KeyInit + Aead>(b: &mut Bencher, rng: &mut dyn RngCore, size: usize) {
     let mut key = vec![0u8; A::KeySize::USIZE];
     rng.fill_bytes(key.as_mut_slice());
     let mut nonce = vec![0u8; A::NonceSize::USIZE];
@@ -24,7 +24,7 @@ fn bench_for_size<A: NewAead + Aead>(b: &mut Bencher, rng: &mut dyn RngCore, siz
     b.iter(|| black_box(cipher.encrypt(nonce, plaintext.as_slice())));
 }
 
-fn bench_for_size_inplace<A: NewAead + AeadInPlace>(
+fn bench_for_size_inplace<A: KeyInit + AeadInPlace>(
     b: &mut Bencher,
     rng: &mut dyn RngCore,
     size: usize,
@@ -42,7 +42,7 @@ fn bench_for_size_inplace<A: NewAead + AeadInPlace>(
     b.iter(|| black_box(cipher.encrypt_in_place(nonce, b"", &mut buffer)));
 }
 
-fn criterion_benchmark<A: NewAead + Aead>(c: &mut Criterion, name: &str) {
+fn criterion_benchmark<A: KeyInit + Aead>(c: &mut Criterion, name: &str) {
     let mut rng = StdRng::from_entropy();
     let mut group = c.benchmark_group(name);
     for size in SIZES.iter() {
@@ -54,7 +54,7 @@ fn criterion_benchmark<A: NewAead + Aead>(c: &mut Criterion, name: &str) {
     group.finish();
 }
 
-fn criterion_benchmark_inplace<A: NewAead + AeadInPlace>(c: &mut Criterion, name: &str) {
+fn criterion_benchmark_inplace<A: KeyInit + AeadInPlace>(c: &mut Criterion, name: &str) {
     let mut rng = StdRng::from_entropy();
     let mut group = c.benchmark_group(name);
     for size in SIZES.iter() {

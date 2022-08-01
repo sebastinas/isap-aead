@@ -14,7 +14,7 @@
 //! ```
 //! # #[cfg(feature="ascon")] {
 //! use isap_aead::IsapAscon128; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
-//! use isap_aead::aead::{Aead, NewAead};
+//! use isap_aead::aead::{Aead, KeyInit};
 //!
 //! let key = b"very secret key.";
 //! let cipher = IsapAscon128::new(key.into());
@@ -39,7 +39,7 @@
 //! ```
 //! # #[cfg(all(feature = "heapless", feature="ascon"))] {
 //! use isap_aead::IsapAscon128; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
-//! use isap_aead::aead::{AeadInPlace, NewAead};
+//! use isap_aead::aead::{AeadInPlace, KeyInit};
 //! use isap_aead::aead::heapless::Vec;
 //!
 //! let key = b"very secret key.";
@@ -66,7 +66,7 @@
 
 use core::ops::Sub;
 
-pub use aead::{self, AeadCore, AeadInPlace, Error, Key, NewAead, Nonce, Result, Tag};
+pub use aead::{self, AeadCore, AeadInPlace, Error, Key, KeyInit, Nonce, Result, Tag};
 use aead::{
     consts::{U0, U16},
     generic_array::typenum::Unsigned,

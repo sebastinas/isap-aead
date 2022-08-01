@@ -4,10 +4,11 @@
 use aead::{
     consts::{U0, U1, U12, U128, U16, U40, U6, U64, U8},
     generic_array::typenum::Unsigned,
+    KeySizeUser,
 };
 use ascon_core::State;
 
-use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, NewAead, Nonce, Result, Tag};
+use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Result, Tag};
 
 #[derive(Debug, Default)]
 pub(crate) struct AsconState {
@@ -152,9 +153,11 @@ impl AeadCore for IsapAscon128 {
     type CiphertextOverhead = U0;
 }
 
-impl NewAead for IsapAscon128 {
+impl KeySizeUser for IsapAscon128 {
     type KeySize = U16;
+}
 
+impl KeyInit for IsapAscon128 {
     fn new(key: &Key<Self>) -> Self {
         Self { k: (*key).into() }
     }
@@ -223,9 +226,11 @@ impl AeadCore for IsapAscon128A {
     type CiphertextOverhead = U0;
 }
 
-impl NewAead for IsapAscon128A {
+impl KeySizeUser for IsapAscon128A {
     type KeySize = U16;
+}
 
+impl KeyInit for IsapAscon128A {
     fn new(key: &Key<Self>) -> Self {
         Self { k: (*key).into() }
     }

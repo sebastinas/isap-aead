@@ -4,10 +4,11 @@
 use aead::{
     consts::{U0, U1, U12, U128, U144, U16, U18, U20, U50, U8},
     generic_array::typenum::Unsigned,
+    KeySizeUser,
 };
 use keccak::keccak_p;
 
-use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, NewAead, Nonce, Result, Tag};
+use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Result, Tag};
 
 #[derive(Debug, Default)]
 pub(crate) struct KeccakState {
@@ -139,9 +140,11 @@ impl AeadCore for IsapKeccak128 {
     type CiphertextOverhead = U0;
 }
 
-impl NewAead for IsapKeccak128 {
+impl KeySizeUser for IsapKeccak128 {
     type KeySize = U16;
+}
 
+impl KeyInit for IsapKeccak128 {
     fn new(key: &Key<Self>) -> Self {
         Self { k: (*key).into() }
     }
@@ -216,9 +219,11 @@ impl AeadCore for IsapKeccak128A {
     type CiphertextOverhead = U0;
 }
 
-impl NewAead for IsapKeccak128A {
+impl KeySizeUser for IsapKeccak128A {
     type KeySize = U16;
+}
 
+impl KeyInit for IsapKeccak128A {
     fn new(key: &Key<Self>) -> Self {
         Self { k: (*key).into() }
     }
