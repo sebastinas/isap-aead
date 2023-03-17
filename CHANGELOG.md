@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 (2023-03-17)
+
+* Replace `aead-core` with `aead`.
+* Bump MSRV to 1.60.
+
 ## 0.2 (2022-08-01)
 
 * Port to aead 0.5.
