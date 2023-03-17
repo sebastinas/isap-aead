@@ -6,7 +6,7 @@ use aead::{
     generic_array::typenum::Unsigned,
     KeySizeUser,
 };
-use ascon_core::State;
+use ascon::State;
 
 use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Result, Tag};
 
@@ -16,13 +16,13 @@ pub(crate) struct AsconState {
     idx: usize,
 }
 
-impl From<ascon_core::State> for AsconState {
-    fn from(state: ascon_core::State) -> Self {
+impl From<State> for AsconState {
+    fn from(state: State) -> Self {
         Self { state, idx: 0 }
     }
 }
 
-impl From<AsconState> for ascon_core::State {
+impl From<AsconState> for State {
     fn from(state: AsconState) -> Self {
         state.state
     }

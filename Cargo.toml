@@ -15,7 +15,7 @@ exclude = [".github/", ".gitignore"]
 
 [dependencies]
 aead = { version = "0.5", default-features = false }
-ascon-core = { version = "0.1.2", optional = true }
+ascon = { version = "0.3", optional = true }
 keccak = { version = "0.1", optional = true }
 subtle = "2"
 zeroize = { version = "1.5", optional = true, default-features = false, features = [
@@ -33,7 +33,6 @@ rand = { version = "0.8", default-features = false, features = [
 
 [features]
 default = ["zeroize", "alloc", "ascon", "keccak"]
-ascon = ["ascon-core"]
 std = ["aead/std", "alloc"]
 alloc = ["aead/alloc"]
 heapless = ["aead/heapless"]
