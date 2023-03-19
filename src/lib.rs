@@ -1,12 +1,11 @@
 // Copyright 2022 Sebastian Ramacher
 // SPDX-License-Identifier: MIT
 
-//! # ISAP authenticated encryption with Keccak and Ascon permutations
-//!
-//! This crate provides an implementation of the authenticated encryption scheme
-//! [ISAP](https://isap.iaik.tugraz.at). As specified in ISAP version 2,
-//! implementations are provided for the Ascon and Keccak based instances.
-//!
+#![no_std]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![doc = include_str!("../README.md")]
+#![warn(missing_docs)]
+
 //! ## Usage
 //!
 //! Simple usage (allocating, no associated data):
@@ -60,9 +59,6 @@
 //! assert_eq!(&buffer, b"plaintext message");
 //! # }
 //! ```
-
-#![no_std]
-#![warn(missing_docs)]
 
 use core::ops::Sub;
 
