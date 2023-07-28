@@ -15,7 +15,7 @@ exclude = [".github/", ".gitignore"]
 
 [dependencies]
 aead = { version = "0.5", default-features = false }
-ascon = { version = "0.3", optional = true }
+ascon = { version = "0.4", optional = true, default-features = false }
 keccak = { version = "0.1", optional = true }
 subtle = "2"
 zeroize = { version = "1.5", optional = true, default-features = false, features = [
@@ -36,6 +36,7 @@ default = ["zeroize", "alloc", "ascon", "keccak"]
 std = ["aead/std", "alloc"]
 alloc = ["aead/alloc"]
 heapless = ["aead/heapless"]
+zeroize = ["dep:zeroize", "ascon/zeroize"]
 
 [[bench]]
 name = "benches"
