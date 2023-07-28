@@ -35,7 +35,9 @@ rand = { version = "0.8", default-features = false, features = [
 default = ["zeroize", "alloc", "ascon", "keccak"]
 std = ["aead/std", "alloc"]
 alloc = ["aead/alloc"]
+arrayvec = ["aead/arrayvec"]
 heapless = ["aead/heapless"]
+stream = ["aead/stream"]
 zeroize = ["dep:zeroize", "ascon/zeroize"]
 
 [[bench]]

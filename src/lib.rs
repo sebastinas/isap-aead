@@ -59,6 +59,9 @@
 //! assert_eq!(&buffer, b"plaintext message");
 //! # }
 //! ```
+//!
+//! Similarly, enabling the `arrayvec` feature of this crate will provide an impl of
+//! [`aead::Buffer`] for `arrayvec::ArrayVec`.
 
 use core::ops::Sub;
 
