@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 (2023-07-28)
+
+* Align features with the `aead` crate.
+* Bump `ascon` to 0.4.
+* Enable `ascon`'s `zeroize` feature if the `zeroize` feature is enabled.
+
 ## 0.2.1 (2023-03-17)
 
 * Replace `aead-core` with `aead`.
