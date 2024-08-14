@@ -272,7 +272,7 @@ trait Isap {
     }
 }
 
-/// Derive session key `K_A^*`and `K_E^*, respectively, from long term key `K`.
+/// Derive session key `K_A^*` and `K_E^*`, respectively, from long term key `K`.
 fn isap_rk<State: AbsorbingState, RoundsKey: Unsigned, RoundsBit: Unsigned>(
     k: &[u8; 16],
     iv: &[u8; 8],
