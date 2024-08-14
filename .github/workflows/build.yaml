@@ -28,6 +28,7 @@ jobs:
       - name: Install dependencies compatible with MSRV
         run: |
           cargo update -p rayon --precise 1.7.0
+          cargo update -p crossbeam-epoch --precise 0.9.15
         if: ${{matrix.toolchain != 'stable'}}
       - name: Test with default features
         run: cargo test --workspace
