@@ -193,7 +193,7 @@ trait Isap {
     /// Perform encryption
     fn isap_enc(key: &[u8; 16], nonce: &[u8; 16], mut buffer: &mut [u8]) {
         let mut state =
-            isap_rk::<Self::State, Self::RoundsKey, Self::RoundsBit>(key, &Self::ISAP_IV_KE, nonce);
+            isap_rk::<Self::State, Self::RoundsKey, Self::RoundsBit>(key, Self::ISAP_IV_KE, nonce);
         state.overwrite_bytes::<16, <<Self::State as AbsorbingState>::StateSize as U16Subtractable>::Output>(nonce);
 
         while buffer.len() >= Self::RateBytes::USIZE {
@@ -232,7 +232,7 @@ trait Isap {
         // derive Ka*
         let y: [u8; 16] = state.extract_bytes();
         let state2 =
-            isap_rk::<Self::State, Self::RoundsKey, Self::RoundsBit>(k, &Self::ISAP_IV_KA, &y);
+            isap_rk::<Self::State, Self::RoundsKey, Self::RoundsBit>(k, Self::ISAP_IV_KA, &y);
 
         // squeeze tag
         state.overwrite_bytes::<16, U0>(&state2.extract_bytes());
@@ -275,12 +275,12 @@ trait Isap {
 /// Derive session key `K_A^*` and `K_E^*`, respectively, from long term key `K`.
 fn isap_rk<State: AbsorbingState, RoundsKey: Unsigned, RoundsBit: Unsigned>(
     k: &[u8; 16],
-    iv: &[u8; 8],
+    iv: [u8; 8],
     input: &[u8],
 ) -> State {
     let mut state = State::default();
     state.overwrite_bytes::<16, U0>(k);
-    state.overwrite_bytes::<8, U16>(iv);
+    state.overwrite_bytes::<8, U16>(&iv);
     state.permute_n::<RoundsKey>();
 
     for byte in &input[..input.len() - 1] {
