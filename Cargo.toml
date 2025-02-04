@@ -28,7 +28,7 @@ hex = "0.4"
 criterion = "0.5"
 rand = { version = "0.9", default-features = false, features = [
   "std_rng",
-  "getrandom",
+  "os_rng",
 ] }
 
 [features]
