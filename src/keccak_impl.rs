@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 use aead::{
-    consts::{U0, U1, U12, U128, U144, U16, U18, U20, U50, U8},
-    generic_array::typenum::Unsigned,
     KeySizeUser,
+    consts::{U0, U1, U8, U12, U16, U18, U20, U50, U128, U144},
+    generic_array::typenum::Unsigned,
 };
 use keccak::keccak_p;
 

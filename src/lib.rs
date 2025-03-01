@@ -68,7 +68,7 @@ use core::ops::Sub;
 pub use aead::{self, AeadCore, AeadInPlace, Error, Key, KeyInit, Nonce, Result, Tag};
 use aead::{
     consts::{U0, U16},
-    generic_array::{typenum::Unsigned, GenericArray},
+    generic_array::{GenericArray, typenum::Unsigned},
 };
 use subtle::ConstantTimeEq;
 

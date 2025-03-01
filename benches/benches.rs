@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 use criterion::{
-    black_box, criterion_group, criterion_main, Bencher, BenchmarkId, Criterion, Throughput,
+    Bencher, BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main,
 };
-use isap_aead::aead::{generic_array::typenum::Unsigned, Aead, AeadInPlace, KeyInit};
-use rand::{rngs::StdRng, RngCore, SeedableRng};
+use isap_aead::aead::{Aead, AeadInPlace, KeyInit, generic_array::typenum::Unsigned};
+use rand::{RngCore, SeedableRng, rngs::StdRng};
 
 const KB: usize = 1024;
 const SIZES: [usize; 7] = [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB];

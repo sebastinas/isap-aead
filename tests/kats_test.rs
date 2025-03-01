@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 use isap_aead::{
-    aead::{Aead, Payload},
     AeadInPlace, IsapAscon128, IsapAscon128A, IsapKeccak128, IsapKeccak128A, Key, KeyInit, Nonce,
+    aead::{Aead, Payload},
 };
-use spectral::prelude::{asserting, OrderedAssertions, ResultAssertions};
+use spectral::prelude::{OrderedAssertions, ResultAssertions, asserting};
 use std::collections::HashMap;
 use std::include_str;
 

@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 use aead::{
-    consts::{U0, U1, U12, U128, U16, U40, U6, U64, U8},
-    generic_array::typenum::Unsigned,
     KeySizeUser,
+    consts::{U0, U1, U6, U8, U12, U16, U40, U64, U128},
+    generic_array::typenum::Unsigned,
 };
 use ascon::State;
 
