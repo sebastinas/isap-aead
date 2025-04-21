@@ -11,6 +11,7 @@ use keccak::keccak_p;
 use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Result, Tag};
 
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub(crate) struct KeccakState {
     state: [u16; 25],
     idx: usize,
@@ -96,7 +97,7 @@ impl AbsorbingState for KeccakState {
 
 /// ISAP-Keccask128
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "zeroize", derive(zeroize::ZeroizeOnDrop))]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub struct IsapKeccak128 {
     k: [u8; 16],
 }
@@ -173,7 +174,7 @@ impl AeadInPlace for IsapKeccak128 {
 
 /// ISAP-Keccak128A
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "zeroize", derive(zeroize::ZeroizeOnDrop))]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub struct IsapKeccak128A {
     k: [u8; 16],
 }

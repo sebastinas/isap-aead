@@ -11,6 +11,7 @@ use ascon_core::State;
 use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Result, Tag};
 
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub(crate) struct AsconState {
     state: State,
     idx: usize,
@@ -99,7 +100,7 @@ impl AbsorbingState for AsconState {
 
 /// ISAP-Ascon128
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "zeroize", derive(zeroize::ZeroizeOnDrop))]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub struct IsapAscon128 {
     k: [u8; 16],
 }
@@ -170,7 +171,7 @@ impl AeadInPlace for IsapAscon128 {
 
 /// ISAP-Ascon128A
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "zeroize", derive(zeroize::ZeroizeOnDrop))]
+#[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub struct IsapAscon128A {
     k: [u8; 16],
 }
