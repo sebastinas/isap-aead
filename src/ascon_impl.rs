@@ -16,18 +16,6 @@ pub(crate) struct AsconState {
     idx: usize,
 }
 
-impl From<State> for AsconState {
-    fn from(state: State) -> Self {
-        Self { state, idx: 0 }
-    }
-}
-
-impl From<AsconState> for State {
-    fn from(state: AsconState) -> Self {
-        state.state
-    }
-}
-
 impl AbsorbingState for AsconState {
     const RATE: usize = 8;
     type StateSize = U40;
