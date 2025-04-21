@@ -6,7 +6,7 @@ use aead::{
     consts::{U0, U1, U6, U8, U12, U16, U40, U64, U128},
     generic_array::typenum::Unsigned,
 };
-use ascon::State;
+use ascon_core::State;
 
 use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Result, Tag};
 

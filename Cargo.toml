@@ -15,7 +15,10 @@ exclude = [".github/", ".gitignore"]
 
 [dependencies]
 aead = { version = "0.5", default-features = false }
-ascon = { version = "0.4", optional = true, default-features = false }
+ascon-core = { version = "0.5.1", optional = true, default-features = false, features = [
+  "permute_1",
+  "permute_6",
+] }
 keccak = { version = "0.1", optional = true }
 subtle = "2"
 zeroize = { version = "1.5", optional = true, default-features = false, features = [
@@ -38,7 +41,9 @@ alloc = ["aead/alloc"]
 arrayvec = ["aead/arrayvec"]
 heapless = ["aead/heapless"]
 stream = ["aead/stream"]
-zeroize = ["dep:zeroize", "ascon/zeroize"]
+ascon = ["dep:ascon-core"]
+keccak = ["dep:keccak"]
+zeroize = ["dep:zeroize", "ascon-core/zeroize"]
 
 [[bench]]
 name = "benches"
