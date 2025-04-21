@@ -1,6 +1,6 @@
 # ISAP
 
-Pure Rust implementation of the lightweight Authenticated Encryption and Associated Data (AEAD) scheme [ISAP](https://isap.iaik.tugraz.at). This crate implements version 2 of ISAP. By default, implementations with the Keccak (feature `keccak`) and Ascon (feature `ascon`) permutations are provided. For the documentation of all other features, please see the `aead` crate.
+Pure Rust implementation of the lightweight Authenticated Encryption and Associated Data (AEAD) scheme [ISAP](https://isap.isec.tugraz.at/). This crate implements version 2 of ISAP. By default, implementations with the Keccak (feature `keccak`) and Ascon (feature `ascon`) permutations are provided. For the documentation of all other features, please see the `aead` crate.
 
 ## Security Notes
 
