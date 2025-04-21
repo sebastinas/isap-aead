@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.3 (2025-04-21)
+
+* Replace `ascon` with `ascon-core`.
+* Bump MSRV to 1.85 and edition to 2024.
+
 ## 0.2.2 (2023-07-28)
 
 * Align features with the `aead` crate.
@@ -8,7 +13,7 @@
 
 ## 0.2.1 (2023-03-17)
 
-* Replace `aead-core` with `aead`.
+* Replace `ascon-core` with `ascon`.
 * Bump MSRV to 1.60.
 
 ## 0.2 (2022-08-01)
