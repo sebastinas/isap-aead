@@ -37,18 +37,19 @@ impl AbsorbingState for AsconState {
         }
 
         // process full blocks
-        while bytes.len() >= Self::RATE {
-            self.state[0] ^= u64::from_be_bytes(bytes[..8].try_into().unwrap());
+        let chunks = bytes.chunks_exact(Self::RATE);
+        let reminder = chunks.remainder();
+        for chunk in chunks {
+            self.state[0] ^= u64::from_be_bytes(chunk.try_into().unwrap());
             self.permute_n::<R>();
-            bytes = &bytes[Self::RATE..];
         }
 
         // process remaining bytes
-        if !bytes.is_empty() {
+        if !reminder.is_empty() {
             let mut tmp = [0u8; 8];
-            tmp[0..bytes.len()].copy_from_slice(bytes);
+            tmp[0..reminder.len()].copy_from_slice(reminder);
             self.state[0] ^= u64::from_be_bytes(tmp);
-            self.idx = bytes.len();
+            self.idx = reminder.len();
         }
     }
 

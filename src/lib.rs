@@ -191,22 +191,23 @@ trait Isap {
     fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]);
 
     /// Perform encryption
-    fn isap_enc(key: &[u8; 16], nonce: &[u8; 16], mut buffer: &mut [u8]) {
+    fn isap_enc(key: &[u8; 16], nonce: &[u8; 16], buffer: &mut [u8]) {
         let mut state =
             isap_rk::<Self::State, Self::RoundsKey, Self::RoundsBit>(key, Self::ISAP_IV_KE, nonce);
         state.overwrite_bytes::<16, <<Self::State as AbsorbingState>::StateSize as U16Subtractable>::Output>(nonce);
 
-        while buffer.len() >= Self::RateBytes::USIZE {
+        let mut chunks = buffer.chunks_exact_mut(Self::RateBytes::USIZE);
+        for chunk in chunks.by_ref() {
             state.permute_n::<Self::RoundsEncryption>();
             // process full block
-            Self::isap_enc_process_block(&state, buffer);
-            buffer = &mut buffer[Self::RateBytes::USIZE..];
+            Self::isap_enc_process_block(&state, chunk);
         }
 
-        if !buffer.is_empty() {
+        let remainder = chunks.into_remainder();
+        if !remainder.is_empty() {
             state.permute_n::<Self::RoundsEncryption>();
             // process remaining bytes
-            Self::isap_enc_process_bytes(state, buffer);
+            Self::isap_enc_process_bytes(state, remainder);
         }
     }
 

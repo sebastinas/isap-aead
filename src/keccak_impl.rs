@@ -48,14 +48,15 @@ impl AbsorbingState for KeccakState {
         }
 
         // process full blocks
-        while bytes.len() >= 2 {
-            self.absorb_two_bytes::<R>(bytes[0], bytes[1]);
-            bytes = &bytes[2..];
+        let chunks = bytes.chunks_exact(2);
+        let reminder = chunks.remainder();
+        for chunk in chunks {
+            self.absorb_two_bytes::<R>(chunk[0], chunk[1]);
         }
 
         // process remaining bytes
-        if !bytes.is_empty() {
-            self.absorb_byte::<R>(bytes[0]);
+        if !reminder.is_empty() {
+            self.absorb_byte::<R>(reminder[0]);
         }
     }
 
