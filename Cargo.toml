@@ -28,7 +28,7 @@ zeroize = { version = "1.5", optional = true, default-features = false, features
 [dev-dependencies]
 spectral = { version = "0.6", default-features = false }
 hex = "0.4"
-criterion = "0.7"
+criterion = "0.8"
 rand = { version = "0.8", default-features = false, features = [
   "std_rng",
   "getrandom",
