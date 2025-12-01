@@ -1,9 +1,9 @@
 // Copyright 2022 Sebastian Ramacher
 // SPDX-License-Identifier: MIT
 
-use criterion::{
-    Bencher, BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main,
-};
+use std::hint::black_box;
+
+use criterion::{Bencher, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use isap_aead::aead::{Aead, AeadInPlace, KeyInit, generic_array::typenum::Unsigned};
 use rand::{RngCore, SeedableRng, rngs::StdRng};
 

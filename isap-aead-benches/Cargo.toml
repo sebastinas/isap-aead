@@ -1,0 +1,26 @@
+[package]
+name = "isap-aead-benches"
+version = "0.1.0"
+publish = false
+license = "Apache-2.0 OR MIT"
+edition = "2024"
+rust-version = "1.86"
+
+[dependencies]
+isap-aead = { path = "../", features = ["default", "std"] }
+rand = { version = "0.8", default-features = false, features = [
+  "std_rng",
+  "getrandom",
+] }
+criterion = "0.8"
+
+[lib]
+test = false
+doc = false
+doctest = false
+
+[[bench]]
+name = "isap-aead-benches"
+path = "benches/benches.rs"
+harness = false
+test = false
