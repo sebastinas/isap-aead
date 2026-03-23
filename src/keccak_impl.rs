@@ -14,6 +14,7 @@ use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Re
 #[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub(crate) struct KeccakState {
     state: [u16; 25],
+    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     idx: usize,
     #[cfg_attr(feature = "zeroize", zeroize(skip))]
     keccak: Keccak,

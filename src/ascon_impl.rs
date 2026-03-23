@@ -14,6 +14,7 @@ use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Re
 #[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
 pub(crate) struct AsconState {
     state: State,
+    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     idx: usize,
 }
 
