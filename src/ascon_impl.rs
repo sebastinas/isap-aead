@@ -54,16 +54,12 @@ impl AbsorbingState for AsconState {
     }
 
     fn permute_n<R: Unsigned>(&mut self) {
-        if R::USIZE == 12 {
-            self.state.permute_12();
-        } else if R::USIZE == 8 {
-            self.state.permute_8();
-        } else if R::USIZE == 6 {
-            self.state.permute_6();
-        } else if R::USIZE == 1 {
-            self.state.permute_1();
-        } else {
-            self.state.permute_n(R::USIZE);
+        match R::USIZE {
+            12 => self.state.permute_12(),
+            8 => self.state.permute_8(),
+            6 => self.state.permute_6(),
+            1 => self.state.permute_1(),
+            _ => unreachable!(),
         }
         self.idx = 0;
     }

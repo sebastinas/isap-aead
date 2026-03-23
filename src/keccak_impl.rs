@@ -69,7 +69,7 @@ impl AbsorbingState for KeccakState {
             12 => self.keccak.with_p400::<12>(|p| p(&mut self.state)),
             16 => self.keccak.with_p400::<16>(|p| p(&mut self.state)),
             20 => self.keccak.with_p400::<20>(|p| p(&mut self.state)),
-            _ => unimplemented!(),
+            _ => unreachable!(),
         }
         self.idx = 0;
     }
