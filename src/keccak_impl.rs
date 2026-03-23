@@ -6,7 +6,7 @@ use aead::{
     consts::{U0, U1, U8, U12, U16, U18, U20, U50, U128, U144},
     generic_array::typenum::Unsigned,
 };
-use keccak::keccak_p;
+use keccak::Keccak;
 
 use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Result, Tag};
 
@@ -15,6 +15,8 @@ use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Re
 pub(crate) struct KeccakState {
     state: [u16; 25],
     idx: usize,
+    #[cfg_attr(feature = "zeroize", zeroize(skip))]
+    keccak: Keccak,
 }
 
 impl KeccakState {
@@ -61,7 +63,14 @@ impl AbsorbingState for KeccakState {
     }
 
     fn permute_n<R: Unsigned>(&mut self) {
-        keccak_p(&mut self.state, R::USIZE);
+        match R::USIZE {
+            1 => self.keccak.with_p400::<1>(|p| p(&mut self.state)),
+            8 => self.keccak.with_p400::<8>(|p| p(&mut self.state)),
+            12 => self.keccak.with_p400::<12>(|p| p(&mut self.state)),
+            16 => self.keccak.with_p400::<16>(|p| p(&mut self.state)),
+            20 => self.keccak.with_p400::<20>(|p| p(&mut self.state)),
+            _ => unimplemented!(),
+        }
         self.idx = 0;
     }
 
