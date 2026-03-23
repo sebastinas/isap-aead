@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5 (2026-03-23)
+
+* Bump `keccak` to 0.2.
+
 ## 0.2.4 (2025-12-01)
 
 * Refactor benchmarks.
