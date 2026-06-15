@@ -14,7 +14,7 @@ categories = ["cryptography", "no-std"]
 exclude = [".github/", ".gitignore"]
 
 [dependencies]
-aead = { version = "0.5", default-features = false }
+aead = { version = "0.6", default-features = false }
 ascon-core = { version = "0.5.1", optional = true, default-features = false, features = [
   "permute_1",
   "permute_6",
