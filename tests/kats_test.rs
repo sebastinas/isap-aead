@@ -1,8 +1,8 @@
-// Copyright 2022 Sebastian Ramacher
+// Copyright 2022-2026 Sebastian Ramacher
 // SPDX-License-Identifier: MIT
 
 use isap_aead::{
-    AeadInPlace, IsapAscon128, IsapAscon128A, IsapKeccak128, IsapKeccak128A, Key, KeyInit, Nonce,
+    AeadInOut, IsapAscon128, IsapAscon128A, IsapKeccak128, IsapKeccak128A, Key, KeyInit, Nonce,
     aead::{Aead, Payload},
 };
 use spectral::prelude::{OrderedAssertions, ResultAssertions, asserting};
@@ -39,11 +39,11 @@ impl TestVector {
     }
 }
 
-fn run_tv<A: KeyInit + AeadInPlace>(tv: TestVector) {
-    let core = A::new(Key::<A>::from_slice(&tv.key));
+fn run_tv<A: KeyInit + AeadInOut>(tv: TestVector) {
+    let core = A::new(&Key::<A>::try_from(tv.key.as_slice()).unwrap());
     asserting(format!("Test Vector {} encryption", tv.count).as_str())
         .that(&core.encrypt(
-            Nonce::<A>::from_slice(&tv.nonce),
+            &Nonce::<A>::try_from(tv.nonce.as_slice()).unwrap(),
             Payload {
                 msg: &tv.plaintext,
                 aad: &tv.associated_data,
@@ -54,7 +54,7 @@ fn run_tv<A: KeyInit + AeadInPlace>(tv: TestVector) {
 
     asserting(format!("Test Vector {} decryption", tv.count).as_str())
         .that(&core.decrypt(
-            Nonce::<A>::from_slice(&tv.nonce),
+            &Nonce::<A>::try_from(tv.nonce.as_slice()).unwrap(),
             Payload {
                 msg: &tv.ciphertext,
                 aad: &tv.associated_data,

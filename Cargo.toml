@@ -14,7 +14,7 @@ categories = ["cryptography", "no-std"]
 exclude = [".github/", ".gitignore"]
 
 [dependencies]
-aead = { version = "0.5", default-features = false }
+aead = { version = "0.6", default-features = false }
 ascon-core = { version = "0.5.1", optional = true, default-features = false, features = [
   "permute_1",
   "permute_6",
@@ -31,11 +31,13 @@ hex = "0.4"
 
 [features]
 default = ["zeroize", "alloc", "ascon", "keccak"]
-std = ["aead/std", "alloc"]
+std = ["alloc"]
 alloc = ["aead/alloc"]
 arrayvec = ["aead/arrayvec"]
-heapless = ["aead/heapless"]
-stream = ["aead/stream"]
+# will be added back to aead in 0.6.1
+# heapless = ["aead/heapless"]
+rand_core = ["aead/rand_core"]
+getrandom = ["aead/getrandom"]
 ascon = ["dep:ascon-core"]
 keccak = ["dep:keccak"]
 zeroize = ["dep:zeroize", "ascon-core/zeroize"]

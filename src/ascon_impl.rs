@@ -1,14 +1,15 @@
-// Copyright 2022 Sebastian Ramacher
+// Copyright 2022-2026 Sebastian Ramacher
 // SPDX-License-Identifier: MIT
 
 use aead::{
-    KeySizeUser,
-    consts::{U0, U1, U6, U8, U12, U16, U40, U64, U128},
-    generic_array::typenum::Unsigned,
+    KeySizeUser, TagPosition,
+    array::{Array, typenum::Unsigned},
+    consts::{U1, U6, U8, U12, U16, U40, U64, U128},
+    inout::{InOut, InOutBuf},
 };
 use ascon_core::State;
 
-use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Result, Tag};
+use crate::{AbsorbingState, AeadCore, AeadInOut, Isap, Key, KeyInit, Nonce, Result, Tag};
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
@@ -114,18 +115,22 @@ impl Isap for IsapAscon128 {
     type RoundsMAC = U12;
     type State = AsconState;
 
-    fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]) {
+    fn isap_enc_process_block(
+        state: &Self::State,
+        mut buffer: InOut<'_, '_, Array<u8, Self::RateBytes>>,
+    ) {
         let t = u64::from_ne_bytes(state.extract_bytes())
-            ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
-        buffer[..8].copy_from_slice(&u64::to_ne_bytes(t));
+            ^ u64::from_ne_bytes(buffer.get_in()[..8].try_into().unwrap());
+        buffer.get_out()[..8].copy_from_slice(&u64::to_ne_bytes(t));
     }
 
-    fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]) {
+    fn isap_enc_process_bytes(state: Self::State, mut buffer: InOutBuf<'_, '_, u8>) {
         let mut tmp = [0u8; 8];
-        tmp[0..buffer.len()].copy_from_slice(buffer);
-        buffer.copy_from_slice(
+        let buf_len = buffer.len();
+        tmp[0..buf_len].copy_from_slice(buffer.get_in());
+        buffer.get_out().copy_from_slice(
             &u64::to_ne_bytes(u64::from_ne_bytes(state.extract_bytes()) ^ u64::from_ne_bytes(tmp))
-                [0..buffer.len()],
+                [0..buf_len],
         );
     }
 }
@@ -133,7 +138,7 @@ impl Isap for IsapAscon128 {
 impl AeadCore for IsapAscon128 {
     type NonceSize = U16;
     type TagSize = U16;
-    type CiphertextOverhead = U0;
+    const TAG_POSITION: TagPosition = TagPosition::Postfix;
 }
 
 impl KeySizeUser for IsapAscon128 {
@@ -146,21 +151,21 @@ impl KeyInit for IsapAscon128 {
     }
 }
 
-impl AeadInPlace for IsapAscon128 {
-    fn encrypt_in_place_detached(
+impl AeadInOut for IsapAscon128 {
+    fn encrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
     ) -> Result<Tag<Self>> {
         Self::encrypt_impl(&self.k, nonce, associated_data, buffer).map(Into::into)
     }
 
-    fn decrypt_in_place_detached(
+    fn decrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
         tag: &Tag<Self>,
     ) -> Result<()> {
         Self::decrypt_impl(&self.k, nonce, associated_data, buffer, tag)
@@ -185,18 +190,22 @@ impl Isap for IsapAscon128A {
     type RoundsMAC = U12;
     type State = AsconState;
 
-    fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]) {
+    fn isap_enc_process_block(
+        state: &Self::State,
+        mut buffer: InOut<'_, '_, Array<u8, Self::RateBytes>>,
+    ) {
         let t = u64::from_ne_bytes(state.extract_bytes())
-            ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
-        buffer[..8].copy_from_slice(&u64::to_ne_bytes(t));
+            ^ u64::from_ne_bytes(buffer.get_in()[..8].try_into().unwrap());
+        buffer.get_out()[..8].copy_from_slice(&u64::to_ne_bytes(t));
     }
 
-    fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]) {
+    fn isap_enc_process_bytes(state: Self::State, mut buffer: InOutBuf<'_, '_, u8>) {
         let mut tmp = [0u8; 8];
-        tmp[0..buffer.len()].copy_from_slice(buffer);
-        buffer.copy_from_slice(
+        let buf_len = buffer.len();
+        tmp[0..buf_len].copy_from_slice(buffer.get_in());
+        buffer.get_out().copy_from_slice(
             &u64::to_ne_bytes(u64::from_ne_bytes(state.extract_bytes()) ^ u64::from_ne_bytes(tmp))
-                [0..buffer.len()],
+                [0..buf_len],
         );
     }
 }
@@ -204,7 +213,7 @@ impl Isap for IsapAscon128A {
 impl AeadCore for IsapAscon128A {
     type NonceSize = U16;
     type TagSize = U16;
-    type CiphertextOverhead = U0;
+    const TAG_POSITION: TagPosition = TagPosition::Postfix;
 }
 
 impl KeySizeUser for IsapAscon128A {
@@ -217,21 +226,21 @@ impl KeyInit for IsapAscon128A {
     }
 }
 
-impl AeadInPlace for IsapAscon128A {
-    fn encrypt_in_place_detached(
+impl AeadInOut for IsapAscon128A {
+    fn encrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
     ) -> Result<Tag<Self>> {
         Self::encrypt_impl(&self.k, nonce, associated_data, buffer).map(Into::into)
     }
 
-    fn decrypt_in_place_detached(
+    fn decrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
         tag: &Tag<Self>,
     ) -> Result<()> {
         Self::decrypt_impl(&self.k, nonce, associated_data, buffer, tag)

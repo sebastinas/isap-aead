@@ -4,8 +4,8 @@
 use std::hint::black_box;
 
 use criterion::{Bencher, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
-use isap_aead::aead::{Aead, AeadInPlace, KeyInit, generic_array::typenum::Unsigned};
-use rand::{RngCore, SeedableRng, rngs::StdRng};
+use isap_aead::aead::{Aead, AeadInOut, KeyInit, array::typenum::Unsigned};
+use rand::RngCore;
 
 const KB: usize = 1024;
 const SIZES: [usize; 7] = [KB, 2 * KB, 4 * KB, 8 * KB, 16 * KB, 32 * KB, 64 * KB];
@@ -18,13 +18,13 @@ fn bench_for_size<A: KeyInit + Aead>(b: &mut Bencher, rng: &mut dyn RngCore, siz
     let mut plaintext = vec![0u8; size];
     rng.fill_bytes(plaintext.as_mut_slice());
 
-    let cipher = A::new(key.as_slice().into());
-    let nonce = nonce.as_slice().into();
+    let cipher = A::new(key.as_slice().try_into().unwrap());
+    let nonce = nonce.as_slice().try_into().unwrap();
 
     b.iter(|| black_box(cipher.encrypt(nonce, plaintext.as_slice())));
 }
 
-fn bench_for_size_inplace<A: KeyInit + AeadInPlace>(
+fn bench_for_size_inplace<A: KeyInit + AeadInOut>(
     b: &mut Bencher,
     rng: &mut dyn RngCore,
     size: usize,
@@ -36,14 +36,14 @@ fn bench_for_size_inplace<A: KeyInit + AeadInPlace>(
     let mut buffer = vec![0u8; size + 16];
     rng.fill_bytes(buffer.as_mut_slice());
 
-    let cipher = A::new(key.as_slice().into());
-    let nonce = nonce.as_slice().into();
+    let cipher = A::new(key.as_slice().try_into().unwrap());
+    let nonce = nonce.as_slice().try_into().unwrap();
 
     b.iter(|| black_box(cipher.encrypt_in_place(nonce, b"", &mut buffer)));
 }
 
 fn criterion_benchmark<A: KeyInit + Aead>(c: &mut Criterion, name: &str) {
-    let mut rng = StdRng::from_entropy();
+    let mut rng = rand::rng();
     let mut group = c.benchmark_group(name);
     for size in SIZES.iter() {
         group.throughput(Throughput::Bytes(*size as u64));
@@ -54,8 +54,8 @@ fn criterion_benchmark<A: KeyInit + Aead>(c: &mut Criterion, name: &str) {
     group.finish();
 }
 
-fn criterion_benchmark_inplace<A: KeyInit + AeadInPlace>(c: &mut Criterion, name: &str) {
-    let mut rng = StdRng::from_entropy();
+fn criterion_benchmark_inplace<A: KeyInit + AeadInOut>(c: &mut Criterion, name: &str) {
+    let mut rng = rand::rng();
     let mut group = c.benchmark_group(name);
     for size in SIZES.iter() {
         group.throughput(Throughput::Bytes(*size as u64));

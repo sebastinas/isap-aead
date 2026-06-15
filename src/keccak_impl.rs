@@ -1,14 +1,15 @@
-// Copyright 2022 Sebastian Ramacher
+// Copyright 2022-2026 Sebastian Ramacher
 // SPDX-License-Identifier: MIT
 
 use aead::{
-    KeySizeUser,
-    consts::{U0, U1, U8, U12, U16, U18, U20, U50, U128, U144},
-    generic_array::typenum::Unsigned,
+    KeySizeUser, TagPosition,
+    array::{Array, typenum::Unsigned},
+    consts::{U1, U8, U12, U16, U18, U20, U50, U128, U144},
+    inout::{InOut, InOutBuf},
 };
 use keccak::Keccak;
 
-use crate::{AbsorbingState, AeadCore, AeadInPlace, Isap, Key, KeyInit, Nonce, Result, Tag};
+use crate::{AbsorbingState, AeadCore, AeadInOut, Isap, Key, KeyInit, Nonce, Result, Tag};
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "zeroize", derive(zeroize::Zeroize, zeroize::ZeroizeOnDrop))]
@@ -124,24 +125,27 @@ impl Isap for IsapKeccak128 {
     type RoundsMAC = U20;
     type State = KeccakState;
 
-    fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]) {
+    fn isap_enc_process_block(
+        state: &Self::State,
+        mut buffer: InOut<'_, '_, Array<u8, Self::RateBytes>>,
+    ) {
         let key_stream: [u8; 18] = state.extract_bytes();
         // TODO: this is a mess, but faster
         let t = u64::from_ne_bytes(key_stream[..8].try_into().unwrap())
-            ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
-        buffer[..8].copy_from_slice(&u64::to_ne_bytes(t));
+            ^ u64::from_ne_bytes(buffer.get_in()[..8].try_into().unwrap());
+        buffer.get_out()[..8].copy_from_slice(&u64::to_ne_bytes(t));
         let t = u64::from_ne_bytes(key_stream[8..16].try_into().unwrap())
-            ^ u64::from_ne_bytes(buffer[8..16].try_into().unwrap());
-        buffer[8..16].copy_from_slice(&u64::to_ne_bytes(t));
+            ^ u64::from_ne_bytes(buffer.get_in()[8..16].try_into().unwrap());
+        buffer.get_out()[8..16].copy_from_slice(&u64::to_ne_bytes(t));
         let t = u16::from_ne_bytes(key_stream[16..18].try_into().unwrap())
-            ^ u16::from_ne_bytes(buffer[16..18].try_into().unwrap());
-        buffer[16..18].copy_from_slice(&u16::to_ne_bytes(t));
+            ^ u16::from_ne_bytes(buffer.get_in()[16..18].try_into().unwrap());
+        buffer.get_out()[16..18].copy_from_slice(&u16::to_ne_bytes(t));
     }
 
-    fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]) {
+    fn isap_enc_process_bytes(state: Self::State, buffer: InOutBuf<'_, '_, u8>) {
         let key_stream: [u8; 18] = state.extract_bytes();
-        for (b, k) in buffer.iter_mut().zip(key_stream.into_iter()) {
-            *b ^= k;
+        for (mut b, k) in buffer.into_iter().zip(key_stream) {
+            *b.get_out() = b.get_in() ^ k;
         }
     }
 }
@@ -149,7 +153,7 @@ impl Isap for IsapKeccak128 {
 impl AeadCore for IsapKeccak128 {
     type NonceSize = U16;
     type TagSize = U16;
-    type CiphertextOverhead = U0;
+    const TAG_POSITION: TagPosition = TagPosition::Postfix;
 }
 
 impl KeySizeUser for IsapKeccak128 {
@@ -162,21 +166,21 @@ impl KeyInit for IsapKeccak128 {
     }
 }
 
-impl AeadInPlace for IsapKeccak128 {
-    fn encrypt_in_place_detached(
+impl AeadInOut for IsapKeccak128 {
+    fn encrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
     ) -> Result<Tag<Self>> {
         Self::encrypt_impl(&self.k, nonce, associated_data, buffer).map(Into::into)
     }
 
-    fn decrypt_in_place_detached(
+    fn decrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
         tag: &Tag<Self>,
     ) -> Result<()> {
         Self::decrypt_impl(&self.k, nonce, associated_data, buffer, tag)
@@ -201,24 +205,27 @@ impl Isap for IsapKeccak128A {
     type RoundsMAC = U16;
     type State = KeccakState;
 
-    fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]) {
+    fn isap_enc_process_block(
+        state: &Self::State,
+        mut buffer: InOut<'_, '_, Array<u8, Self::RateBytes>>,
+    ) {
         let key_stream: [u8; 18] = state.extract_bytes();
         // TODO: this is a mess, but faster
         let t = u64::from_ne_bytes(key_stream[..8].try_into().unwrap())
-            ^ u64::from_ne_bytes(buffer[..8].try_into().unwrap());
-        buffer[..8].copy_from_slice(&u64::to_ne_bytes(t));
+            ^ u64::from_ne_bytes(buffer.get_in()[..8].try_into().unwrap());
+        buffer.get_out()[..8].copy_from_slice(&u64::to_ne_bytes(t));
         let t = u64::from_ne_bytes(key_stream[8..16].try_into().unwrap())
-            ^ u64::from_ne_bytes(buffer[8..16].try_into().unwrap());
-        buffer[8..16].copy_from_slice(&u64::to_ne_bytes(t));
+            ^ u64::from_ne_bytes(buffer.get_in()[8..16].try_into().unwrap());
+        buffer.get_out()[8..16].copy_from_slice(&u64::to_ne_bytes(t));
         let t = u16::from_ne_bytes(key_stream[16..18].try_into().unwrap())
-            ^ u16::from_ne_bytes(buffer[16..18].try_into().unwrap());
-        buffer[16..18].copy_from_slice(&u16::to_ne_bytes(t));
+            ^ u16::from_ne_bytes(buffer.get_in()[16..18].try_into().unwrap());
+        buffer.get_out()[16..18].copy_from_slice(&u16::to_ne_bytes(t));
     }
 
-    fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]) {
+    fn isap_enc_process_bytes(state: Self::State, buffer: InOutBuf<'_, '_, u8>) {
         let key_stream: [u8; 18] = state.extract_bytes();
-        for (b, k) in buffer.iter_mut().zip(key_stream.into_iter()) {
-            *b ^= k;
+        for (mut b, k) in buffer.into_iter().zip(key_stream) {
+            *b.get_out() = b.get_in() ^ k;
         }
     }
 }
@@ -226,7 +233,7 @@ impl Isap for IsapKeccak128A {
 impl AeadCore for IsapKeccak128A {
     type NonceSize = U16;
     type TagSize = U16;
-    type CiphertextOverhead = U0;
+    const TAG_POSITION: TagPosition = TagPosition::Postfix;
 }
 
 impl KeySizeUser for IsapKeccak128A {
@@ -239,23 +246,23 @@ impl KeyInit for IsapKeccak128A {
     }
 }
 
-impl AeadInPlace for IsapKeccak128A {
-    fn encrypt_in_place_detached(
+impl AeadInOut for IsapKeccak128A {
+    fn encrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
     ) -> Result<Tag<Self>> {
         Self::encrypt_impl(&self.k, nonce, associated_data, buffer).map(Into::into)
     }
 
-    fn decrypt_in_place_detached(
+    fn decrypt_inout_detached(
         &self,
         nonce: &Nonce<Self>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
         tag: &Tag<Self>,
-    ) -> aead::Result<()> {
+    ) -> Result<()> {
         Self::decrypt_impl(&self.k, nonce, associated_data, buffer, tag)
     }
 }

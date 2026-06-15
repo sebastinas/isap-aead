@@ -7,11 +7,8 @@ edition = "2024"
 rust-version = "1.86"
 
 [dependencies]
-isap-aead = { path = "../", features = ["default", "std"] }
-rand = { version = "0.8", default-features = false, features = [
-  "std_rng",
-  "getrandom",
-] }
+isap-aead = { path = "../", features = ["std", "getrandom"] }
+rand = "0.9"
 criterion = "0.8"
 
 [lib]

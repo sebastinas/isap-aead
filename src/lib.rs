@@ -1,4 +1,4 @@
-// Copyright 2022 Sebastian Ramacher
+// Copyright 2022-2026 Sebastian Ramacher
 // SPDX-License-Identifier: MIT
 
 #![no_std]
@@ -31,44 +31,26 @@
 //!
 //! ## In-place Usage (eliminates `alloc` requirement)
 //!
-//! Similar to other crates implementing [`aead`] interfaces, this crate also offers an optional
-//! `alloc` feature which can be disabled in e.g. microcontroller environments that don't have a
-//! heap. See [`aead::AeadInPlace`] for more details.
+//! This crate has an optional `alloc` feature which can be disabled in e.g.
+//! microcontroller environments that don't have a heap.
 //!
-//! ```
-//! # #[cfg(all(feature = "heapless", feature="ascon"))] {
-//! use isap_aead::IsapAscon128; // Or `IsapAscon128A`, `IsapKeccak128`, `IsapKeccak128A`
-//! use isap_aead::aead::{AeadInPlace, KeyInit};
-//! use isap_aead::aead::heapless::Vec;
+//! The [`AeadInOut::encrypt_in_place`] and [`AeadInOut::decrypt_in_place`]
+//! methods accept any type that impls the [`aead::Buffer`] trait which
+//! contains the plaintext for encryption or ciphertext for decryption.
 //!
-//! let key = b"very secret key.";
-//! let cipher = IsapAscon128::new(key.into());
-//! let nonce = b"unique nonce 012"; // 128-bits; unique per message
-//!
-//! let mut buffer: Vec<u8, 128> = Vec::new(); // Buffer needs 16-bytes overhead for authentication tag
-//! buffer.extend_from_slice(b"plaintext message");
-//!
-//! // Encrypt `buffer` in-place, replacing the plaintext contents with ciphertext
-//! cipher.encrypt_in_place(nonce.into(), b"", &mut buffer).expect("encryption failure!");
-//!
-//! // `buffer` now contains the message ciphertext
-//! assert_ne!(&buffer, b"plaintext message");
-//!
-//! // Decrypt `buffer` in-place, replacing its ciphertext context with the original plaintext
-//! cipher.decrypt_in_place(nonce.into(), b"", &mut buffer).expect("decryption failure!");
-//! assert_eq!(&buffer, b"plaintext message");
-//! # }
-//! ```
-//!
-//! Similarly, enabling the `arrayvec` feature of this crate will provide an impl of
-//! [`aead::Buffer`] for `arrayvec::ArrayVec`.
+//! Enabling the `arrayvec` feature of this crate will provide an impl of
+//! [`aead::Buffer`] for `arrayvec::ArrayVec` (re-exported from the [`aead`] crate as
+//! [`aead::arrayvec::ArrayVec`]), and enabling the `bytes` feature of this crate will
+//! provide an impl of [`aead::Buffer`] for `bytes::BytesMut` (re-exported from the
+//! [`aead`] crate as [`aead::bytes::BytesMut`]).
 
 use core::ops::Sub;
 
-pub use aead::{self, AeadCore, AeadInPlace, Error, Key, KeyInit, Nonce, Result, Tag};
+pub use aead::{self, AeadCore, AeadInOut, Error, Key, KeyInit, Nonce, Result, Tag};
 use aead::{
+    array::{Array, ArraySize, typenum::Unsigned},
     consts::{U0, U16},
-    generic_array::{GenericArray, typenum::Unsigned},
+    inout::{InOut, InOutBuf},
 };
 use subtle::ConstantTimeEq;
 
@@ -139,7 +121,7 @@ trait Isap {
     type KeySizeBits: Unsigned; //  = U128;
     /// Absorbation rate for encryption and MAC, i.e., `r_H`.
     type RateBits: Unsigned;
-    type RateBytes: Unsigned;
+    type RateBytes: ArraySize;
     /// Absorbation rate for session key, i.e., `r_B`; always `U1`.
     type RateSessionKeyBits: Unsigned; // = 1;
     /// Rounds of the permutation for long term key absorbation, i.e., `s_K`.
@@ -186,24 +168,26 @@ trait Isap {
     ];
 
     /// Process one full block of the message/ciphertext and encrypt/decrypt.
-    fn isap_enc_process_block(state: &Self::State, buffer: &mut [u8]);
+    fn isap_enc_process_block(
+        state: &Self::State,
+        buffer: InOut<'_, '_, Array<u8, Self::RateBytes>>,
+    );
     /// Process the remaining bytes of the message/ciphertext and encrypt/decrypt.
-    fn isap_enc_process_bytes(state: Self::State, buffer: &mut [u8]);
+    fn isap_enc_process_bytes(state: Self::State, buffer: InOutBuf<'_, '_, u8>);
 
     /// Perform encryption
-    fn isap_enc(key: &[u8; 16], nonce: &[u8; 16], buffer: &mut [u8]) {
+    fn isap_enc(key: &[u8; 16], nonce: &[u8; 16], buffer: InOutBuf<'_, '_, u8>) {
         let mut state =
             isap_rk::<Self::State, Self::RoundsKey, Self::RoundsBit>(key, Self::ISAP_IV_KE, nonce);
         state.overwrite_bytes::<16, <<Self::State as AbsorbingState>::StateSize as U16Subtractable>::Output>(nonce);
 
-        let mut chunks = buffer.chunks_exact_mut(Self::RateBytes::USIZE);
-        for chunk in chunks.by_ref() {
+        let (chunks, remainder) = buffer.into_chunks::<Self::RateBytes>();
+        for chunk in chunks {
             state.permute_n::<Self::RoundsEncryption>();
             // process full block
             Self::isap_enc_process_block(&state, chunk);
         }
 
-        let remainder = chunks.into_remainder();
         if !remainder.is_empty() {
             state.permute_n::<Self::RoundsEncryption>();
             // process remaining bytes
@@ -244,25 +228,32 @@ trait Isap {
     /// Full implementation of the ISAP encryption algorithm.
     fn encrypt_impl(
         key: &[u8; 16],
-        nonce: &GenericArray<u8, U16>,
+        nonce: &Array<u8, U16>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        mut buffer: InOutBuf<'_, '_, u8>,
     ) -> Result<[u8; 16]> {
         if !buffer.is_empty() {
-            Self::isap_enc(key, nonce.as_ref(), buffer);
+            Self::isap_enc(key, nonce.as_ref(), buffer.reborrow());
         }
-        Ok(Self::isap_mac(key, nonce.as_ref(), associated_data, buffer))
+        Ok(Self::isap_mac(
+            key,
+            nonce.as_ref(),
+            associated_data,
+            buffer.into_out(),
+        ))
     }
 
     /// Full implementation of the ISAP decryption algorithm.
     fn decrypt_impl(
         key: &[u8; 16],
-        nonce: &GenericArray<u8, U16>,
+        nonce: &Array<u8, U16>,
         associated_data: &[u8],
-        buffer: &mut [u8],
+        buffer: InOutBuf<'_, '_, u8>,
         tag: &[u8],
     ) -> Result<()> {
-        if bool::from(Self::isap_mac(key, nonce.as_ref(), associated_data, buffer).ct_eq(tag)) {
+        if bool::from(
+            Self::isap_mac(key, nonce.as_ref(), associated_data, buffer.get_in()).ct_eq(tag),
+        ) {
             if !buffer.is_empty() {
                 Self::isap_enc(key, nonce.as_ref(), buffer);
             }
