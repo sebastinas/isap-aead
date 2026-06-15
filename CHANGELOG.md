@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 (2026-06-15)
+
+* Upgrade to `aead 0.6`.
+
 ## 0.2.5 (2026-03-23)
 
 * Bump `keccak` to 0.2.
